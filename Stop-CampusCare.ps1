@@ -1,5 +1,8 @@
 $ErrorActionPreference = 'SilentlyContinue'
 
+$project = $PSScriptRoot
+$backend = Join-Path $project 'backend'
+
 function Stop-OwnedPort([int]$port, [string]$marker) {
     $connection = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
     if (-not $connection) { return }
@@ -10,12 +13,12 @@ function Stop-OwnedPort([int]$port, [string]$marker) {
 }
 
 Stop-OwnedPort 3000 'CampusCare\frontend'
-Stop-OwnedPort 8080 'CampusCare\target\campus-care'
+Stop-OwnedPort 8080 'CampusCare\backend\target\campus-care'
 
 $pidFile = Join-Path $env:LOCALAPPDATA 'CampusCare\app-pids.json'
 if (Test-Path $pidFile) { Remove-Item $pidFile -Force -ErrorAction SilentlyContinue }
 
 if (Get-NetTCPConnection -LocalPort 3307 -State Listen -ErrorAction SilentlyContinue) {
-    & (Join-Path $PSScriptRoot 'Stop-LocalDatabase.ps1')
+    & (Join-Path $backend 'Stop-LocalDatabase.ps1')
 }
 Write-Output 'Campus Care stopped.'

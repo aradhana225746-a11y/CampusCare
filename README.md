@@ -1,29 +1,44 @@
 # Campus Care
 
-Campus Care is a community problem reporting and resolution system.
+Campus Care is a campus issue reporting and activity management system.
+
+## Project structure
+
+```text
+CampusCare/
+├─ frontend/                  React + TypeScript + Vite UI
+├─ backend/                   Java backend and database files
+│  ├─ src/                    Java source and tests
+│  ├─ database/               SQL setup files
+│  ├─ pom.xml                 Maven configuration
+│  ├─ Setup-LocalDatabase.ps1
+│  ├─ Start-LocalDatabase.ps1
+│  ├─ Stop-LocalDatabase.ps1
+│  └─ Test-LiveDatabase.ps1
+├─ Start-CampusCare.ps1       Starts the full application
+└─ Stop-CampusCare.ps1        Stops the full application
+```
 
 ## Architecture
 
-Frontend: React + TypeScript + Vite (copied from `campuscare_prototype`)
+Frontend: React + TypeScript + Vite
 
-Backend: plain Java, intentionally kept small:
+Backend: plain Java:
 
-- `Main.java` starts the backend
-- `ApiServer.java` exposes HTTP endpoints using Java's built-in `HttpServer`
-- `Store.java` contains the JDBC/database operations
-- `DatabaseConnection.java` opens the MySQL connection
+- `backend/src/main/java/com/campuscare/Main.java` starts the backend
+- `backend/src/main/java/com/campuscare/ApiServer.java` exposes HTTP endpoints using Java's built-in `HttpServer`
+- `backend/src/main/java/com/campuscare/Store.java` contains JDBC/database operations
+- `backend/src/main/java/com/campuscare/database/DatabaseConnection.java` opens the MySQL connection
 
 Database: MySQL 8
-
-There is no Spring Boot, Node backend, Firebase backend, or Java Swing frontend in the final application. All backend/database logic is Java.
 
 Flow:
 
 `React UI -> /api -> Java HttpServer -> Store/JDBC -> MySQL`
 
-## Run
+## Run the complete project
 
-From PowerShell:
+From PowerShell in the repository root:
 
 ```powershell
 cd D:\D\Java\CampusCare
@@ -46,60 +61,36 @@ To stop everything:
 .\Stop-CampusCare.ps1
 ```
 
-## Demo accounts
+## First-time local database setup
 
-The local setup creates a demo student and a local administrator with protected local passwords. On the welcome screen use:
-
-- **Open student demo**
-- **Open admin demo**
-
-The browser never receives the stored demo password. The Java backend reads the protected local credential and performs the login.
-
-## Features connected to Java/MySQL
-
-- student registration and login
-- admin login
-- persistent reports
-- report search/filtering
-- assignment, priority and five-stage status workflow
-- resolution notes
-- community activities
-- student activity joins
-- contribution points
-- student profile updates
-- participant list
-- admin analytics calculated from real records
-
-## Test data
-
-The local demo seed adds:
-
-- Water Leakage
-- Broken Chair
-- Overflowing Bins
-- Flickering Light
-- Loose Tap
-- Tree Plantation
-- Campus Clean-up
-- Book Donation Drive
-- E-Waste Collection
-- Awareness Programme
-
-The records are marked as demo data in MySQL.
-
-## Build / test backend
+The root launcher performs setup automatically when needed. To run database setup manually:
 
 ```powershell
+cd D:\D\Java\CampusCare\backend
+.\Setup-LocalDatabase.ps1
+```
+
+Local credentials are stored outside the repository under the current Windows user's local application data.
+
+## Build and test the backend
+
+```powershell
+cd D:\D\Java\CampusCare\backend
 $env:JAVA_HOME = 'D:\Program Files\Java\jdk-26.0.2.1'
 & 'D:\Tools\apache-maven-3.10.0\bin\mvn.cmd' clean test package
 ```
 
-Unit/integration-style tests use H2 in MySQL compatibility mode. The optional live MySQL test is run with `Test-LiveDatabase.ps1`.
-
-## Build frontend
+For the optional live MySQL integration test:
 
 ```powershell
-cd frontend
+cd D:\D\Java\CampusCare\backend
+.\Test-LiveDatabase.ps1
+```
+
+## Build the frontend
+
+```powershell
+cd D:\D\Java\CampusCare\frontend
 npx pnpm@11.25.0 install
 npx pnpm@11.25.0 build
 ```
@@ -110,13 +101,7 @@ npx pnpm@11.25.0 build
 Starts the Java API.
 
 ### `ApiServer.java`
-Receives HTTP requests from React. Examples:
-
-- `/api/register`
-- `/api/login`
-- `/api/reports`
-- `/api/activities`
-- `/api/profile`
+Receives HTTP requests from React, including routes for login, reports, activities, and profile updates.
 
 ### `Store.java`
 Runs SQL through JDBC using prepared statements.
@@ -124,4 +109,4 @@ Runs SQL through JDBC using prepared statements.
 ### `DatabaseConnection.java`
 Connects Java to MySQL using environment variables.
 
-That is the complete backend path; the React frontend does not directly access MySQL.
+The React frontend never directly accesses MySQL.

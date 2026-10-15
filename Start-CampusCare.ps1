@@ -2,6 +2,8 @@ param([switch]$NoBrowser)
 $ErrorActionPreference = 'Stop'
 
 $project = $PSScriptRoot
+$backend = Join-Path $project 'backend'
+$frontend = Join-Path $project 'frontend'
 $local = Join-Path $env:LOCALAPPDATA 'CampusCare\mysql'
 $configFile = Join-Path $local 'instance.json'
 $pidFile = Join-Path $env:LOCALAPPDATA 'CampusCare\app-pids.json'
@@ -11,9 +13,9 @@ $npx = 'C:\Program Files\nodejs\npx.cmd'
 
 if (-not (Test-Path $configFile)) {
     Write-Output 'Creating the local Campus Care MySQL instance...'
-    & (Join-Path $project 'Setup-LocalDatabase.ps1')
+    & (Join-Path $backend 'Setup-LocalDatabase.ps1')
 }
-& (Join-Path $project 'Start-LocalDatabase.ps1')
+& (Join-Path $backend 'Start-LocalDatabase.ps1')
 
 $config = Get-Content $configFile -Raw | ConvertFrom-Json
 $db = Import-Clixml (Join-Path $local 'database.credential.xml')
@@ -29,24 +31,26 @@ $env:CAMPUSCARE_ADMIN_EMAIL = $admin.UserName
 $env:CAMPUSCARE_ADMIN_PASSWORD = $admin.GetNetworkCredential().Password
 $env:JAVA_HOME = $javaHome
 
-$jar = Join-Path $project 'target\campus-care-1.0-SNAPSHOT.jar'
+$jar = Join-Path $backend 'target\campus-care-1.0-SNAPSHOT.jar'
 $needsBuild = -not (Test-Path $jar)
 if (-not $needsBuild) {
     $jarTime = (Get-Item $jar).LastWriteTimeUtc
-    $newerSource = Get-ChildItem (Join-Path $project 'src') -Recurse -File | Where-Object { $_.LastWriteTimeUtc -gt $jarTime } | Select-Object -First 1
-    $needsBuild = $null -ne $newerSource -or (Get-Item (Join-Path $project 'pom.xml')).LastWriteTimeUtc -gt $jarTime
+    $newerSource = Get-ChildItem (Join-Path $backend 'src') -Recurse -File | Where-Object { $_.LastWriteTimeUtc -gt $jarTime } | Select-Object -First 1
+    $needsBuild = $null -ne $newerSource -or (Get-Item (Join-Path $backend 'pom.xml')).LastWriteTimeUtc -gt $jarTime
 }
 if ($needsBuild) {
     Write-Output 'Building Java backend...'
-    & $maven -q -DskipTests package
-    if ($LASTEXITCODE -ne 0) { throw 'Java backend build failed.' }
+    Push-Location $backend
+    try {
+        & $maven -q -DskipTests package
+        if ($LASTEXITCODE -ne 0) { throw 'Java backend build failed.' }
+    } finally { Pop-Location }
 }
 
-# Ensure the local admin account and demo data exist. This is safe to run repeatedly.
+# Ensure local accounts/sample data exist. Safe to run repeatedly.
 & (Join-Path $javaHome 'bin\java.exe') -jar $jar --prepare-local
-if ($LASTEXITCODE -ne 0) { throw 'Local account/demo preparation failed.' }
+if ($LASTEXITCODE -ne 0) { throw 'Local account/sample preparation failed.' }
 
-$frontend = Join-Path $project 'frontend'
 if (-not (Test-Path (Join-Path $frontend 'node_modules'))) {
     Write-Output 'Installing frontend dependencies...'
     Push-Location $frontend
