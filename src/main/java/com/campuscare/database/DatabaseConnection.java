@@ -1,26 +1,12 @@
 package com.campuscare.database;
-
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-
-public class DatabaseConnection {
-
-    private static final String URL =
-            "jdbc:mysql://localhost:3306/campus_care";
-
-    private static final String USER = "root";
-
+import java.sql.*;
+public final class DatabaseConnection {
+    private DatabaseConnection() {}
     public static Connection getConnection() throws SQLException {
-
         String password = System.getenv("CAMPUSCARE_DB_PASSWORD");
-
-        if (password == null || password.isBlank()) {
-            throw new SQLException(
-                    "CAMPUSCARE_DB_PASSWORD environment variable is not set."
-            );
-        }
-
-        return DriverManager.getConnection(URL, USER, password);
+        if (password == null) throw new SQLException("Set CAMPUSCARE_DB_PASSWORD before launching Campus Care.");
+        return DriverManager.getConnection(
+            System.getenv().getOrDefault("CAMPUSCARE_DB_URL", "jdbc:mysql://localhost:3306/campus_care?connectTimeout=5000&socketTimeout=15000"),
+            System.getenv().getOrDefault("CAMPUSCARE_DB_USER", "root"), password);
     }
 }
